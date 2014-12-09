@@ -30,7 +30,7 @@ class BookCrammingModule:
         
         # render a dialog window
         dialogs._dialogs["MyWin"] = [window.Window, None]
-        winInst = dialogs.open("MyWin", logic, settings)
+        winInst = dialogs.open("MyWin", {"logic":logic, "settings":settings})
         
         
 

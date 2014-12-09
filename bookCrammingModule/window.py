@@ -5,29 +5,30 @@ from aqt import mw
 import pickle
 
 class Window(QMainWindow):
-    def __init__(self, *args):
+    def __init__(self, kwords):
         QMainWindow.__init__(self, None, Qt.Window)
-        
-        self.form_widget = FormWidget(self, *args) 
+        kwords["winInst"] = self
+        self.form_widget = FormWidget(self, kwords) 
         self.setCentralWidget(self.form_widget) 
         
         self.show()
     
-    def renderTable(self, wordsToCram):
+    def renderTable(self, wordsToCram, purpose, dArgs):
         self.table = MyTable("mystruct", 100, 10)
         self.table.setMinimumHeight(480)
         self.table.setMinimumWidth(780)
         
-        self.table.setmydata(wordsToCram)
+        self.table.setmydata(wordsToCram, purpose, dArgs)
         self.table.show()
         
     
 
 class FormWidget(QWidget):
-    def __init__(self, parent, *args):        
+    def __init__(self, parent, kwords):
         super(FormWidget, self).__init__(parent)
-        self.logic = args[0]
-        self.settings = args[1]
+        self.logic = kwords["logic"]
+        self.settings = kwords["settings"]
+        self.winInst = kwords["winInst"]
         
         # layout
         self.layout = QGridLayout(self) 
@@ -80,12 +81,15 @@ class FormWidget(QWidget):
         self.layout.addWidget(self.minFreqB,2,2)
         
         
+        # defaults
+        self.minRankT.setText("2500")
+        self.minFreqT.setText("2")
     
     def handleButton(self):
         self.rankT = int(self.minRankT.text())
         self.freqT = int(self.minFreqT.text())
         self.calculate()
-        #winInst.renderTable(wordsToCram)
+        
         
     def calculate(self):
         self.logic.init(self.settings["book_text"])
@@ -104,7 +108,7 @@ class FormWidget(QWidget):
         
         
         
-        #print g.representWords(wordsToCram)
+        #print self.logic.representWords(wordsToCram, purpose="minRank")
         
         report = [1, 2, 5, 10]
         reportV = []
@@ -119,15 +123,14 @@ class FormWidget(QWidget):
             else:
                 continue
                 
-        self.outputValL.setText("acih:"+str(stats["toLearn"])+" "+str(reportV))
+        self.outputValL.setText(str(reportV))
         
-        
+        self.winInst.renderTable(wordsToCram, "minRank",{"minFreq":self.freqT})
         
         # 9 2 (4)
         """
-        # print sample words which starts from minRank
-        for sta in sorted(wordsToCram.items(), key=lambda x:x[1][1][0]["rank"], reverse=False)[:30]:
-            print sta
+        TODO what to do with "working" "worked"
+        (part of speach) and if it's verb then stem it; if it's adj then add it in anki as adj
         """
         
         
@@ -139,8 +142,18 @@ class MyTable(QTableWidget):
         #self.data = thestruct
         self.setHorizontalHeaderLabels(['Word Name', 'Deck Name', "Rank", "Interval", "Frequency"])
 
-    def setmydata(self, wordsToCram):
-        wordsI = wordsToCram.items()
+    def defineData(self, wordsToCram, purpose, dArgs):
+        if purpose == "minRank":
+            minFreq = dArgs["minFreq"]
+            words =  sorted([x for x in wordsToCram.items() if x[1][0] >= minFreq], key=lambda x:x[1][1][0]["rank"], reverse=False)[:30]
+        elif purpose == "willBeTagged":
+            words =  sorted(wordsToCram.items(), key=lambda x:x[1][1][0]["rank"], reverse=False)[:30]
+        elif purpose == "arentInAnki":
+            words =  sorted(wordsToCram.items(), key=lambda x:x[1][1][0]["rank"], reverse=False)[:30]
+        return words
+    
+    def setmydata(self, wordsToCram, purpose, dArgs):
+        wordsI = self.defineData(wordsToCram, purpose=purpose, dArgs=dArgs)
         for wordi in range(len(wordsI)):
             #word
             newitem = QTableWidgetItem(wordsI[wordi][0])
@@ -164,12 +177,3 @@ class MyTable(QTableWidget):
             
         
 
-
-class Browser(QWebView):
-    def __init__(self):
-        QWebView.__init__(self)
-        self.loadFinished.connect(self._result_available)
-
-    def _result_available(self, ok):
-        frame = self.page().mainFrame()
-        print unicode(frame.toHtml()).encode('utf-8')

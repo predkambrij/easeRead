@@ -19,38 +19,26 @@ class BookCrammingModule:
     
     @classmethod
     def run(cls):
-        # collection of all of the cards, filters, everything your heart can imagine
-        collection = mw.col
+        # hardcoded settings
+        settings = {
+                    "collection":mw.col,
+                    "book_text":"/home/loj/Downloads/Far_From_The_Madding_Crowd-Thomas_Hardy.txt",
+                    "freqCVS":"/home/loj/Downloads/freq.csv",
+                    }
+        # make an instance of logic class
+        logic = God()
         
-        g = God("/home/loj/Downloads/Far_From_The_Madding_Crowd-Thomas_Hardy.txt")
-        g.loadFreq("/home/loj/Downloads/freq.csv")
-        
-        runpickle = 1
-        if runpickle == 0:
-            wordsToCram, stats = g.run()
-            wordsToCram = g.scanCards(wordsToCram, collection, userKnow=False)
-            pik = open('/home/loj/wordsToCram.pkl', 'wb')
-            pickle.dump(wordsToCram, pik, pickle.HIGHEST_PROTOCOL)
-            pik.close()
-        else:
-            pik = open('/home/loj/wordsToCram.pkl', 'rb')
-            wordsToCram = pickle.load(pik)
-        
-        wordsToCram, stats = g.run()
-        
-        print g.representWords(wordsToCram)
-        print "juhu"
-        
-        
+        # render a dialog window
         dialogs._dialogs["MyWin"] = [window.Window, None]
-        winInst = dialogs.open("MyWin")
-        winInst.renderTable(wordsToCram)
+        winInst = dialogs.open("MyWin", logic, settings)
+        
+        
 
 class God:
-    def __init__(self, fname):
-        self.fname = fname
+    def __init__(self):
         pass
-
+    def init(self, fname):
+        self.fname = fname
 
     def scanCards(self, wordsToCram, collection=None, userKnow=True):
         if collection == None:
@@ -123,7 +111,7 @@ class God:
             #self.words_in_freqlist[word.strip()] = 1
         self.freqList = words
         
-    def run(self):
+    def run(self, minRank):
         text = self.load()
         # tokenize
         tokens = nltk.word_tokenize(text)
@@ -140,7 +128,6 @@ class God:
                     statistics[ltoken] = 1
         
         # let's check the statistics
-        minRank = 2500
         wordsToCram = {}
         # sort words appeared in book by frequency
         for bword, freq in sorted(statistics.items(), key=lambda x:x[1], reverse=True):
@@ -152,20 +139,14 @@ class God:
             #prepare key for anki card ids
             staW[0]["anki"]={"ids":[],"ivl":-1}
             wordsToCram[bword] = [freq, staW]
-            
-            lim = 0
-        lbla = len(wordsToCram.items())
+        
         freqLen = {}
         for word, stat in sorted(wordsToCram.items(), key=lambda x:x[1][0], reverse=True):
             if freqLen.has_key(stat[0]):
                 freqLen[stat[0]] += 1
             else:
                 freqLen[stat[0]] = 1
-            
-            
-            lim += 1
-            if lim < 30:# or (lbla -lim) < 10:
-                print word, stat
+        
         
         # how much words do you need to learn that you will know words which appear more than x times?
         freqLen2 = {}
@@ -175,14 +156,11 @@ class God:
             freqLen2[frequency] = totalWords
         
         stats = {}
-        print len(statistics.items())
-        print len(wordsToCram.items())
-        print sorted(freqLen.items(), key=lambda x:x[0], reverse=True)
-        print sorted(freqLen2.items(), key=lambda x:x[0], reverse=True)
+        stats["uniqWords"]=len(statistics.items())
+        stats["toLearn"]=len(wordsToCram.items())
+        #print sorted(freqLen.items(), key=lambda x:x[0], reverse=True)
+        stats["freq_numToLearn"]=sorted(freqLen2.items(), key=lambda x:x[0], reverse=True)
         
-        # print sample words which starts from minRank
-        for sta in sorted(wordsToCram.items(), key=lambda x:x[1][1][0]["rank"], reverse=False)[:30]:
-            print sta
         return wordsToCram, stats
 # strange documentation
 # vim /nix/store/77vvyiqsng8gnv7yxr9iw616isqkj210-anki-2.0.31/lib/python2.7/site-packages/anki/cards.py 

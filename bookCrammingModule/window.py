@@ -2,80 +2,15 @@
 from aqt.qt import *
 from aqt.utils import showInfo
 from aqt import mw
+import pickle
 
 class Window(QMainWindow):
     def __init__(self, *args):
         QMainWindow.__init__(self, None, Qt.Window)
-        #showInfo("Test content")
-        """
-        layout = QGridLayout() 
-        self.led = QLineEdit("Sample")
         
-        self.table = QTableWidget()
-        self.table.setRowCount(5)
-        self.table.setColumnCount(5)
-        layout.addWidget(self.led, 0, 0)
-        layout.addWidget(self.table, 1, 0)
-        self.table.setItem(1, 0, QTableWidgetItem(self.led.text()))
-        """
-        """
-        layout = QGridLayout() 
-        self.led = QLineEdit("Sample")
+        self.form_widget = FormWidget(self, *args) 
+        self.setCentralWidget(self.form_widget) 
         
-        layout.addWidget(self.led, 0, 0)
-        layout.addWidget(self.table, 1, 0)
-        self.table.setItem(1, 0, QTableWidgetItem(self.led.text()))
-        self.setLayout(layout)
-        """
-        
-        #self.splitter = QtGui.QSplitter(self.splitter_2)
-        #self.widget = QtGui.QWidget(self.splitter)
-        self.centralwidget = QWidget()
-        self.tableView = QTableView(self)
-        #self.centralwidget.exec_()
-        
-        self.button = QPushButton('Test', self)
-        self.button.clicked.connect(self.handleButton)
-        
-        """
-        self.table = QTableWidget()
-        self.table.setRowCount(5)
-        self.table.setColumnCount(5)
-        """
-        
-        
-        #layout = QGridLayout() 
-        layout = QVBoxLayout(self)
-        
-        """
-        self.tableView = QTableView(self)
-        self.tableView.setMinimumSize(QSize(0, 150))
-        self.tableView.setContextMenuPolicy(Qt.ActionsContextMenu)
-        self.tableView.setFrameShape(QFrame.NoFrame)
-        self.tableView.setFrameShadow(QFrame.Plain)
-        self.tableView.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        self.tableView.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.tableView.setTabKeyNavigation(False)
-        self.tableView.setAlternatingRowColors(True)
-        self.tableView.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.tableView.setObjectName("tableView")
-        self.tableView.horizontalHeader().setCascadingSectionResizes(False)
-        self.tableView.horizontalHeader().setHighlightSections(False)
-        self.tableView.horizontalHeader().setMinimumSectionSize(20)
-        self.tableView.horizontalHeader().setSortIndicatorShown(True)
-        """
-        self.label_nombre = QLabel(self)
-        font = QFont()
-        font.setBold(True)
-        font.setWeight(75)
-        self.label_nombre.setFont(font)
-        self.label_nombre.setObjectName("label_nombre")
-        self.label_nombre.setText("hola")
-        
-        #layout.addWidget(self.table)
-        #layout.addWidget(self.tableView)
-        layout.addWidget(self.button)
-        layout.addWidget(self.label_nombre)
         self.show()
     
     def renderTable(self, wordsToCram):
@@ -86,10 +21,118 @@ class Window(QMainWindow):
         self.table.setmydata(wordsToCram)
         self.table.show()
         
+    
+
+class FormWidget(QWidget):
+    def __init__(self, parent, *args):        
+        super(FormWidget, self).__init__(parent)
+        self.logic = args[0]
+        self.settings = args[1]
+        
+        # layout
+        self.layout = QGridLayout(self) 
+        
+        # rank
+        self.minRankL = QLabel(self)
+        font = QFont()
+        font.setBold(True)
+        font.setWeight(75)
+        self.minRankL.setFont(font)
+        self.minRankL.setText("Set rank")
+        self.layout.addWidget(self.minRankL,0,0)
+        
+        self.minRankT = QLineEdit(self)
+        self.minRankT.setFixedWidth(100)
+        self.layout.addWidget(self.minRankT,0,1)
+        
+        # frequency
+        self.minFreqL = QLabel(self)
+        font = QFont()
+        font.setBold(True)
+        font.setWeight(75)
+        self.minFreqL.setFont(font)
+        self.minFreqL.setText("Set freq")
+        self.layout.addWidget(self.minFreqL,1,0)
+        
+        self.minFreqT = QLineEdit(self)
+        self.minFreqT.setFixedWidth(100)
+        self.layout.addWidget(self.minFreqT,1,1)
+        
+        # output
+        self.outputL = QLabel(self)
+        font = QFont()
+        font.setBold(True)
+        font.setWeight(75)
+        self.outputL.setFont(font)
+        self.outputL.setText("To learn(freq:num):")
+        self.layout.addWidget(self.outputL,2,0)
+        
+        self.outputValL = QLabel(self)
+        font = QFont()
+        font.setBold(True)
+        font.setWeight(75)
+        self.outputValL.setFont(font)
+        self.outputValL.setText("123")
+        self.layout.addWidget(self.outputValL,2,1)
+        
+        self.minFreqB = QPushButton("Update")
+        self.minFreqB.clicked.connect(self.handleButton)
+        self.layout.addWidget(self.minFreqB,2,2)
+        
+        
+    
     def handleButton(self):
-        print ('Hello World')
-
-
+        self.rankT = int(self.minRankT.text())
+        self.freqT = int(self.minFreqT.text())
+        self.calculate()
+        #winInst.renderTable(wordsToCram)
+        
+    def calculate(self):
+        self.logic.init(self.settings["book_text"])
+        self.logic.loadFreq(self.settings["freqCVS"])
+        
+        runpickle = 0
+        if runpickle == 0:
+            wordsToCram, stats = self.logic.run(minRank = self.rankT)
+            #wordsToCram = self.logic.scanCards(wordsToCram, self.settings["collection"], userKnow=False)
+            pik = open('/home/loj/wordsToCram.pkl', 'wb')
+            pickle.dump(wordsToCram, pik, pickle.HIGHEST_PROTOCOL)
+            pik.close()
+        else:
+            pik = open('/home/loj/wordsToCram.pkl', 'rb')
+            wordsToCram = pickle.load(pik)
+        
+        
+        
+        #print g.representWords(wordsToCram)
+        
+        report = [1, 2, 5, 10]
+        reportV = []
+        ri=0
+        print stats["freq_numToLearn"]
+        for t in range(len(stats["freq_numToLearn"])-2, -1, -1):
+            if report[ri] <= stats["freq_numToLearn"][t+1][0] and report[ri] < stats["freq_numToLearn"][t][0]:
+                reportV.append(stats["freq_numToLearn"][t+1])
+                ri+=1
+                if len(report) == ri:
+                    break
+            else:
+                continue
+                
+        self.outputValL.setText("acih:"+str(stats["toLearn"])+" "+str(reportV))
+        
+        
+        
+        # 9 2 (4)
+        """
+        # print sample words which starts from minRank
+        for sta in sorted(wordsToCram.items(), key=lambda x:x[1][1][0]["rank"], reverse=False)[:30]:
+            print sta
+        """
+        
+        
+        
+        
 class MyTable(QTableWidget):
     def __init__(self, thestruct, *args): 
         QTableWidget.__init__(self, *args)

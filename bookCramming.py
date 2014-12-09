@@ -1,4 +1,3 @@
-
 import time
 
 # import the main window object (mw) from ankiqt
@@ -11,22 +10,16 @@ import bookCrammingModule
 
 
 
-# PYTHONPATH=$PYTHONPATH:/home/loj/.nix-profile/lib/python2.7/site-packages/
 # We're going to add a menu item below. First we want to create a function to
 # be called when the menu item is activated.
 
-def testFunction():
-    # get the number of cards in the current collection, which is stored in
-    # the main window
-    ##cardCount = mw.col.cardCount()
-    # show a message box
-    ##showInfo("Card count: %d" % cardCount)
-    
-    
+def bookCramming():
+    # measure how much of the time the function takes
     start = time.time()
     
-    # just for testing, that I don't have to stop and start Anki each time
-    reload(bookCrammingModule) # TODO
+    # used during development, that I didn't have to stop and start Anki each time
+    # it's nothing wrong with that
+    reload(bookCrammingModule)
     
     bookCrammingModule.BookCrammingModule.run()
     print "seconds %.2f" % (time.time()-start)
@@ -34,9 +27,9 @@ def testFunction():
     
 
 # create a new menu item, "test"
-action = QAction("test", mw)
+action = QAction("Cramming a Book Vocabulary", mw)
 # set it to call testFunction when it's clicked
-mw.connect(action, SIGNAL("triggered()"), testFunction)
+mw.connect(action, SIGNAL("triggered()"), bookCramming)
 # and add it to the tools menu
 mw.form.menuTools.addAction(action)
 

@@ -30,6 +30,11 @@ class Window(QMainWindow):
         self.table.show()
         return wordsI, statLabel
         
+    def canClose(self):
+        return True
+    def close(self):
+        return True
+    
     
 
 class FormWidget(QWidget):

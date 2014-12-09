@@ -2,6 +2,7 @@
 from aqt.qt import *
 from aqt.utils import showInfo
 from aqt import mw
+import anki
 import pickle
 
 class Window(QMainWindow):
@@ -27,7 +28,7 @@ class Window(QMainWindow):
         
         statLabel = self.table.setmydata(purpose, dArgs)
         self.table.show()
-        return statLabel
+        return wordsI, statLabel
         
     
 
@@ -67,6 +68,20 @@ class FormWidget(QWidget):
         self.minFreqT.setFixedWidth(100)
         self.layout.addWidget(self.minFreqT,1,1)
         
+        # min anki interval
+        self.minIvlL = QLabel(self)
+        font = QFont()
+        font.setBold(True)
+        font.setWeight(75)
+        self.minIvlL.setFont(font)
+        self.minIvlL.setText("Min anki ivl")
+        self.layout.addWidget(self.minIvlL,2,0)
+        
+        self.minIvlT = QLineEdit(self)
+        self.minIvlT.setFixedWidth(100)
+        self.layout.addWidget(self.minIvlT,2,1)
+        
+        
         # output
         self.outputL = QLabel(self)
         font = QFont()
@@ -74,7 +89,7 @@ class FormWidget(QWidget):
         font.setWeight(75)
         self.outputL.setFont(font)
         self.outputL.setText("To learn(freq:num):")
-        self.layout.addWidget(self.outputL,2,0)
+        self.layout.addWidget(self.outputL,3,0)
         
         self.outputValL = QLabel(self)
         font = QFont()
@@ -82,22 +97,33 @@ class FormWidget(QWidget):
         font.setWeight(75)
         self.outputValL.setFont(font)
         self.outputValL.setText("")
-        self.layout.addWidget(self.outputValL,2,1, 1,2)
+        self.layout.addWidget(self.outputValL,3,1, 1,2)
         
         # min rank
         self.minFreqB = QPushButton("Min Rank")
         self.minFreqB.clicked.connect(self.minRankButton)
-        self.layout.addWidget(self.minFreqB,3,0)
+        self.layout.addWidget(self.minFreqB,4,0)
         
         # words in Anki
         self.inAnkiB = QPushButton("In Anki")
         self.inAnkiB.clicked.connect(self.inAnkiButton)
-        self.layout.addWidget(self.inAnkiB,3,1)
+        self.layout.addWidget(self.inAnkiB,4,1)
         
         # words NOT in Anki
         self.notInAnkiB = QPushButton("Not In Anki")
         self.notInAnkiB.clicked.connect(self.notInAnkiButton)
-        self.layout.addWidget(self.notInAnkiB,3, 2)
+        self.layout.addWidget(self.notInAnkiB,4, 2)
+        
+        
+        # tag words in Anki
+        self.notInAnkiB = QPushButton("Tag with #%s"%self.settings["hashTag"])
+        self.notInAnkiB.clicked.connect(self.tagButton)
+        self.layout.addWidget(self.notInAnkiB,5, 1)
+        
+        # untag all
+        self.notInAnkiB = QPushButton("Untag all")
+        self.notInAnkiB.clicked.connect(self.unTagButton)
+        self.layout.addWidget(self.notInAnkiB,5, 2)
         
         self.statusL = QLabel(self)
         font = QFont()
@@ -105,38 +131,68 @@ class FormWidget(QWidget):
         font.setWeight(75)
         self.statusL.setFont(font)
         self.statusL.setText("")
-        self.layout.addWidget(self.statusL,4,0, 1,3)
+        self.layout.addWidget(self.statusL,5,0)
         
         
         # defaults
         self.minRankT.setText("2500")
         self.minFreqT.setText("2")
+        self.minIvlT.setText("2")
     
+    def parseTextFields(self):
+        self.rankTV = int(self.minRankT.text())
+        self.freqTV = int(self.minFreqT.text())
+        self.minIvlTV = int(self.minIvlT.text())
+        
     def minRankButton(self):
-        self.rankT = int(self.minRankT.text())
-        self.freqT = int(self.minFreqT.text())
+        self.parseTextFields()
         self.calculate(purpose="minRank")
         
     def inAnkiButton(self):
-        self.rankT = int(self.minRankT.text())
-        self.freqT = int(self.minFreqT.text())
+        self.parseTextFields()
         self.calculate(purpose="inAnki")
         
     def notInAnkiButton(self):
-        self.rankT = int(self.minRankT.text())
-        self.freqT = int(self.minFreqT.text())
+        self.parseTextFields()
         self.calculate(purpose="notInAnki")
+    
+    def tagButton(self):
+        # untag that we ensure that there're no duplicate tags
+        self.unTagButton()
+        
+        self.parseTextFields()
+        self.calculate(purpose="tagList")
+        
+    def unTagButton(self):
+        self.parseTextFields()
+        #self.calculate(purpose="unTag")
+        
+        ft = anki.find.Finder(self.settings["collection"])
+        cardIds = ft.findCards("tag:%s"%self.settings["hashTag"])
+        ankiNoteIds = set([])
+        for cardId in cardIds:
+            card = mw.col.getCard(cardId)
+            ankiNoteIds.add(card.nid)
+        self.settings["collection"].tags.bulkRem(list(ankiNoteIds), self.settings["hashTag"])
         
         
+    def tagWords(self, wordList):
+        ankiNoteIds = set([])
+        for word in wordList:
+            ankiNoteIds |= set(word[1][1][0]["anki"]["nids"])
+        print ankiNoteIds
+        self.settings["collection"].tags.bulkAdd(list(ankiNoteIds), self.settings["hashTag"])
+        return
+    
     def calculate(self, purpose):
         self.logic.init(self.settings["book_text"])
         self.logic.loadFreq(self.settings["freqCVS"])
         
         runpickle = 0
         if runpickle == 0:
-            wordsToCram, stats = self.logic.run(minRank = self.rankT)
-            if purpose=="inAnki" or purpose=="notInAnki":
-                wordsToCram = self.logic.scanCards(wordsToCram, self.settings["collection"], userKnow=False)
+            wordsToCram, stats = self.logic.run(minRank = self.rankTV)
+            if purpose=="inAnki" or purpose=="notInAnki" or purpose=="tagList":
+                wordsToCram = self.logic.scanCards(wordsToCram, self.settings["collection"], ankiIvl=self.minIvlTV)
             pik = open('/home/loj/wordsToCram.pkl', 'wb')
             pickle.dump(wordsToCram, pik, pickle.HIGHEST_PROTOCOL)
             pik.close()
@@ -151,7 +207,7 @@ class FormWidget(QWidget):
         report = [1, 2, 5, 10]
         reportV = []
         ri=0
-        print stats["freq_numToLearn"]
+        #print stats["freq_numToLearn"]
         for t in range(len(stats["freq_numToLearn"])-2, -1, -1):
             if report[ri] <= stats["freq_numToLearn"][t+1][0] and report[ri] < stats["freq_numToLearn"][t][0]:
                 reportV.append(stats["freq_numToLearn"][t+1])
@@ -164,16 +220,24 @@ class FormWidget(QWidget):
         self.outputValL.setText(str(reportV))
         
         if purpose=="minRank":
-            dArgs = {"minFreq":self.freqT}
-        elif purpose=="inAnki":
-            dArgs = {"minFreq":self.freqT}
+            dArgs = {"minFreq":self.freqTV}
+        elif purpose=="inAnki" or purpose=="tagList":
+            dArgs = {"minFreq":self.freqTV}
         elif purpose=="notInAnki":
-            dArgs = {"minFreq":self.freqT}
+            dArgs = {"minFreq":self.freqTV}
+        elif purpose=="tagList":
+            dArgs = {"minFreq":self.freqTV}
         else:
             dArgs = {}
         
-        statLabel = self.winInst.renderTable(wordsToCram, purpose, dArgs)
+        wordList, statLabel = self.winInst.renderTable(wordsToCram, purpose, dArgs)
         self.statusL.setText("Words shown:%i" % statLabel["wordsNum"])
+        
+        if purpose == "tagList":
+            self.tagWords(wordList)
+            
+            
+            pass
         # 9 2 (4)
         """
         TODO what to do with "working" "worked"
@@ -193,7 +257,7 @@ class TableCalculate():
             words =  sorted([x for x in wordsToCram.items() if len(x[1][1][0]["anki"]["ids"]) == 0 and x[1][0] >= dArgs["minFreq"]]
                                                             , key=lambda x:x[1][1][0]["rank"], reverse=False)
             labels = ['Word Name', "Rank", "Frequency"]
-        elif purpose == "inAnki":
+        elif purpose == "inAnki" or purpose == "tagList":
             words =  sorted([x for x in wordsToCram.items() if len(x[1][1][0]["anki"]["ids"]) >= 1 and x[1][0] >= dArgs["minFreq"]]
                                                             , key=lambda x:x[1][1][0]["rank"], reverse=False)
             labels = ['Word Name', "Rank", "Interval", "Frequency"]
@@ -221,7 +285,7 @@ class MyTable(QTableWidget):
                 self.setRank(wordsI, wordi, columNum); columNum += 1
                 self.setFreq(wordsI, wordi, columNum); columNum += 1
                 
-            elif purpose == "inAnki":
+            elif purpose == "inAnki" or purpose == "tagList":
                 self.setWordName(wordsI, wordi, columNum); columNum += 1
                 self.setRank(wordsI, wordi, columNum); columNum += 1
                 self.setIvl(wordsI, wordi, columNum); columNum += 1

@@ -1,7 +1,7 @@
 import sys
 sys.path.append("/usr/local/lib/python2.7/dist-packages")
 
-import nltk, codecs, time
+import nltk, codecs, time, os
 import anki
 
 from aqt import mw, dialogs
@@ -20,10 +20,11 @@ class BookCrammingModule:
     @classmethod
     def run(cls):
         # hardcoded settings
+        pref =  os.path.dirname(__file__)
         settings = {
                     "collection":mw.col,
-                    "book_text":"/home/loj/Downloads/Far_From_The_Madding_Crowd-Thomas_Hardy.txt",
-                    "freqCVS":"/home/loj/Downloads/freq.csv",
+                    "book_text":pref+"/res/book.txt",
+                    "freqCVS":pref+"/res/freq.csv",
                     "hashTag":"bCram",
                     }
         # make an instance of logic class

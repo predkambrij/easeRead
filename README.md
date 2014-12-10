@@ -69,6 +69,8 @@ If the template for back side of card was altered, cards will be updated with th
 ##Generated card example
 ![Image](../master/docImages/genCard.png?raw=true)
 
+If you click on link, it will open a new tab in your default browser with link (example for Oxford Dictionaries) http://www.oxforddictionaries.com/definition/english/wooden
+
 ###Create a Filtered Deck
 After you tagged words in "In Anki" list you can create Filtered Deck which will include cards for that list.
 

@@ -26,6 +26,7 @@ class BookCrammingModule:
                     "book_text":pref+"/res/book.txt",
                     "freqCVS":pref+"/res/freq.csv",
                     "hashTag":"bCram",
+                    "dictDeckName":"book - bCram generated",
                     }
         # make an instance of logic class
         logic = God()
@@ -49,7 +50,10 @@ class God:
         ft = anki.find.Finder(collection)
         
         # interval level from where user doesn't know (let's say if it's shorter than 1 day
-        cards = ft.findCards("prop:ivl<=%i"%ankiIvl)
+        if ankiIvl == None:
+            cards = ft.findCards("prop:ivl<=%i"%500000)
+        else:
+            cards = ft.findCards("prop:ivl<=%i"%ankiIvl)
         
         juhuN = 0
         

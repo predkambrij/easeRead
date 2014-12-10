@@ -135,8 +135,22 @@ class FormWidget(QWidget):
         font.setBold(True)
         font.setWeight(75)
         self.statusL.setFont(font)
-        self.statusL.setText("")
+        self.statusL.setText("Words shown:0")
         self.layout.addWidget(self.statusL,5,0)
+        
+        # set definitions (new cards with links to online dictionaries)
+        self.setDefinitionsB = QPushButton("Set Definitions")
+        self.setDefinitionsB.clicked.connect(self.setDefinitionsButton)
+        self.layout.addWidget(self.setDefinitionsB,6, 0)
+        
+        # another status bar
+        self.status1L = QLabel(self)
+        font = QFont()
+        font.setBold(True)
+        font.setWeight(75)
+        self.status1L.setFont(font)
+        self.status1L.setText("Status: OK")
+        self.layout.addWidget(self.status1L,7,0, 1, 3)
         
         
         # defaults
@@ -156,6 +170,72 @@ class FormWidget(QWidget):
     def inAnkiButton(self):
         self.parseTextFields()
         self.calculate(purpose="inAnki")
+        
+    def getDeckNotes(self):
+        ft = anki.find.Finder(self.settings["collection"])
+        notesIDs = ft.findNotes('deck:"%s"'%self.settings["dictDeckName"])
+        notes = []
+        for noteId in notesIDs:
+            notes.append(mw.col.getNote(noteId))
+        return notes
+    
+    def templateBack(self, word):
+        back = (("<a href='http://www.oxforddictionaries.com/definition/english/%s'>Oxford</a>" % word.replace(" ", "-"))+
+                ("&nbsp;&nbsp;<a href='http://dictionary.cambridge.org/dictionary/british/%s'>Cambridge</a>" % word.replace(" ", "-"))+
+                ""
+                )
+        return back
+    def addOrUpdateWord(self, deckId, notes, word=None, updateAll=False):
+        statistics = {"updated":0, "added":0, "refreshed":0}
+        for note in notes:
+            if updateAll == True:
+                note["Back"] = self.templateBack(note["Front"])
+                statistics["refreshed"] += 1
+                note.flush()
+            else:
+                if note["Front"] == word:
+                    note["Back"] = self.templateBack(note["Front"])
+                    note.flush()
+                    statistics["updated"] += 1
+                    return statistics
+        
+        if updateAll == True:
+            return statistics
+        # it's not in collection yet, let's add it then
+        note = mw.col.newNote()
+        note["Front"] = word
+        note["Back"] = self.templateBack(note["Front"])
+        note.model()['did'] = deckId
+        cards = mw.col.addNote(note)
+        statistics["added"] += 1
+        
+        return statistics
+        
+    def setDefinitionsButton(self):
+        # read data from window (for checked items)
+        listOfWords = []
+        if not hasattr(self.winInst, "table"):
+            self.status1L.setText("Status: please run \"Not In Anki\" first")
+            return
+        
+        for row in range(self.winInst.table.rowCount()):
+            if self.winInst.table.item(row,0).checkState() == 2:
+                listOfWords.append(self.winInst.table.item(row,0).text())
+        
+        deckId = mw.col.decks.id("%s" % self.settings["dictDeckName"])
+        #deck = mw.col.decks.get(deckId)
+        notes = self.getDeckNotes()
+        statistics = {"updated":0, "added":0, "refreshed":0}
+        for word in listOfWords:
+            res = self.addOrUpdateWord(deckId, notes, word)
+            statistics["updated"] += res["updated"]
+            statistics["added"] += res["added"]
+            
+            
+        res = self.addOrUpdateWord(deckId, notes, updateAll=True)
+        statistics["refreshed"] += res["refreshed"]
+        self.status1L.setText("Status: updated %i, added %i, refreshed %i" % (
+            statistics["updated"], statistics["added"], statistics["refreshed"]))
         
     def notInAnkiButton(self):
         self.parseTextFields()
@@ -196,8 +276,10 @@ class FormWidget(QWidget):
         runpickle = 0
         if runpickle == 0:
             wordsToCram, stats = self.logic.run(minRank = self.rankTV)
-            if purpose=="inAnki" or purpose=="notInAnki" or purpose=="tagList":
+            if purpose=="inAnki" or purpose=="tagList":
                 wordsToCram = self.logic.scanCards(wordsToCram, self.settings["collection"], ankiIvl=self.minIvlTV)
+            elif purpose=="notInAnki" or purpose=="setDefinitions":
+                wordsToCram = self.logic.scanCards(wordsToCram, self.settings["collection"], ankiIvl=None)
             pik = open('/home/loj/wordsToCram.pkl', 'wb')
             pickle.dump(wordsToCram, pik, pickle.HIGHEST_PROTOCOL)
             pik.close()
@@ -229,6 +311,8 @@ class FormWidget(QWidget):
         elif purpose=="inAnki" or purpose=="tagList":
             dArgs = {"minFreq":self.freqTV}
         elif purpose=="notInAnki":
+            dArgs = {"minFreq":self.freqTV}
+        elif purpose=="setDefinitions":
             dArgs = {"minFreq":self.freqTV}
         elif purpose=="tagList":
             dArgs = {"minFreq":self.freqTV}
@@ -313,6 +397,9 @@ class MyTable(QTableWidget):
     
     def setWordName(self, wordsI, wordi, columNum):
         newitem = QTableWidgetItem(wordsI[wordi][0])
+        #newitem.setCheckState(Qt.Checked)
+        newitem.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
+        newitem.setCheckState(Qt.Checked)  
         self.setItem(wordi, columNum, newitem)
     
     def setRank(self, wordsI, wordi, columNum):

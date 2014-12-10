@@ -218,6 +218,10 @@ class FormWidget(QWidget):
             self.status1L.setText("Status: please run \"Not In Anki\" first")
             return
         
+        if self.winInst.table.lastPurpose != "notInAnki":
+            self.status1L.setText("Status: please run \"Not In Anki\" first, other results detected")
+            return
+        
         for row in range(self.winInst.table.rowCount()):
             if self.winInst.table.item(row,0).checkState() == 2:
                 listOfWords.append(self.winInst.table.item(row,0).text())
@@ -364,6 +368,7 @@ class MyTable(QTableWidget):
         
 
     def setmydata(self, purpose, dArgs):
+        self.lastPurpose = purpose
         self.setHorizontalHeaderLabels(dArgs["stats"]["labels"])
         
         wordsI = dArgs["wordsI"]
@@ -384,7 +389,6 @@ class MyTable(QTableWidget):
                 self.setWordName(wordsI, wordi, columNum); columNum += 1
                 self.setRank(wordsI, wordi, columNum); columNum += 1
                 self.setFreq(wordsI, wordi, columNum); columNum += 1
-                
                 
         return dArgs["stats"]
             

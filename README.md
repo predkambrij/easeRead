@@ -18,7 +18,6 @@ Installation procedure:
 
 TODOs / known issues:
 * field "To learn" doesn't consider known words in Anki yet (just information showing - "Tag with #bCram" button won't tag words you know)
-* try to use part of speach and definitions from oxford dictionary for words which aren't present in Anki yet
 * try to consider part of speach of each word or phrase (like "looking for", "is working") for normalization ("is working" -> work; don't split "looking for")
 * try to get better coverage of words in a book (they are lost during checking with most frequent words because they aren't normalized)
 
@@ -59,7 +58,16 @@ Will delete "bCram" tag from all cards.
 ##Not in Anki
 ![Image](../master/docImages/notInAnki.png?raw=true)
 
-Will show list of words which aren't in Anki. You can review it and add words manually. Next release will most probably include feature to get definition from Oxford dictionary or will provide a link to definition for words you will choose.
+Will show list of words which aren't in Anki. You can review it and add words manually.
+
+##Generate cards which aren't present in Anki yet
+![Image](../master/docImages/defini.png?raw=true)
+
+If you click "Set Definitions" after "Not in Anki", cards you selected (checkbox) will be added in (currently hardcoded) deck "book - bCram generated".
+If the template for back side of card was altered, cards will be updated with that operation (that affect just look, interval for cramming won't be changed).
+
+##Generated card example
+![Image](../master/docImages/genCard.png?raw=true)
 
 ###Create a Filtered Deck
 After you tagged words in "In Anki" list you can create Filtered Deck which will include cards for that list.

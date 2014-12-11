@@ -12,15 +12,18 @@ Processing procedure:
 * Tag words according of your filter with (currently hardcoded) "bCram" - that enable you to make Filtered Deck.
 
 Installation procedure:
+* required python modules: pickle, nltk, codecs
 * Download ZIP or clone git repository
 * copy bookCramming.py and bookCrammingModule to Anki/addons directory and restart Anki
 * You can access this addon by Tools -> Cramming a Book Vocabulary menu
 
 TODOs / known issues:
+* it wasn't tested on other platform than Linux Mint yet
+* some actions (In Anki, Not in Anki) may take quite a lot of time (up to half of minute if you have 30000 cards) - it should be progress bar or optimized
 * field "To learn" doesn't consider known words in Anki yet (just information showing - "Tag with #bCram" button won't tag words you know)
 * try to consider part of speach of each word or phrase (like "looking for", "is working") for normalization ("is working" -> work; don't split "looking for")
 * try to get better coverage of words in a book (they are lost during checking with most frequent words because they aren't normalized)
-
+* if you want to generate cards which aren't exist in Anki yet, you have to create deck "book - bCram generated" in advance
 
 #Screenshots with descriptions
 ##Default screen

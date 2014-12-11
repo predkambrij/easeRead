@@ -182,7 +182,8 @@ class FormWidget(QWidget):
     def templateBack(self, word):
         back = (("<a href='http://www.oxforddictionaries.com/definition/english/%s'>Oxford</a>" % word.replace(" ", "-"))+
                 ("&nbsp;&nbsp;<a href='http://dictionary.cambridge.org/dictionary/british/%s'>Cambridge</a>" % word.replace(" ", "-"))+
-                ""
+                ("&nbsp;&nbsp;<a href='https://www.google.com/search?tbm=isch&q=%s'>Images</a>" % word)+
+                ("")
                 )
         return back
     def addOrUpdateWord(self, deckId, notes, word=None, updateAll=False):

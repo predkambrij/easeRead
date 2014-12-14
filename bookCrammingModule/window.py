@@ -3,7 +3,7 @@ from aqt.qt import *
 from aqt.utils import showInfo
 from aqt import mw
 import anki
-import pickle
+import pickle, codecs
 
 class Window(QMainWindow):
     def __init__(self, kwords):
@@ -135,13 +135,18 @@ class FormWidget(QWidget):
         font.setBold(True)
         font.setWeight(75)
         self.statusL.setFont(font)
-        self.statusL.setText("Words shown:0")
+        self.statusL.setText("Words shown:")
         self.layout.addWidget(self.statusL,5,0)
         
         # set definitions (new cards with links to online dictionaries)
         self.setDefinitionsB = QPushButton("Set Definitions")
         self.setDefinitionsB.clicked.connect(self.setDefinitionsButton)
         self.layout.addWidget(self.setDefinitionsB,6, 0)
+        
+        # not in freq list
+        self.notInFreqB = QPushButton("Not in Anki nor Freq list")
+        self.notInFreqB.clicked.connect(self.notInFreqButton)
+        self.layout.addWidget(self.notInFreqB,6, 1)
         
         # another status bar
         self.status1L = QLabel(self)
@@ -166,6 +171,10 @@ class FormWidget(QWidget):
     def minRankButton(self):
         self.parseTextFields()
         self.calculate(purpose="minRank")
+        
+    def notInFreqButton(self):
+        self.parseTextFields()
+        self.calculate(purpose="notInFreq")
         
     def inAnkiButton(self):
         self.parseTextFields()
@@ -211,7 +220,29 @@ class FormWidget(QWidget):
         statistics["added"] += 1
         
         return statistics
-        
+    
+    def readNotInFreq(self):
+        """
+        cbDefNum - num of definitions from cambridge dictionary (-1 means not requested yet)
+        checked - if user checked item in table (if the user wants to add it in anki or not)
+        """
+        notInFreq = {}
+        for line in codecs.open(self.settings["notInFreqDb"], "rb", encoding="utf-8"):
+                word,checked,cbDefNum = line.split("\t")
+                notInFreq[word] = {"checked":int(checked), "cbDefNum":int(cbDefNum)}
+        return notInFreq
+    
+    def writeNotInFreq(self, notInFreq):
+        """
+        cbDefNum - num of definitions from cambridge dictionary (-1 means not requested yet)
+        checked - if user checked item in table (if the user wants to add it in anki or not)
+        """
+        strBuild = ""
+        for word, props in [(x[0], x[1]) for x in notInFreq.items()]:
+            strBuild += "%s\t%s\t%s\n" % (word, str(props["checked"]), str(props["cbDefNum"]))
+        codecs.open(self.settings["notInFreqDb"], "wb", encoding="utf-8").write(strBuild)
+        return
+    
     def setDefinitionsButton(self):
         # read data from window (for checked items)
         listOfWords = []
@@ -219,13 +250,36 @@ class FormWidget(QWidget):
             self.status1L.setText("Status: please run \"Not In Anki\" first")
             return
         
-        if self.winInst.table.lastPurpose != "notInAnki":
+        if self.winInst.table.lastPurpose == "notInFreq":
+            notInFreqDb = self.winInst.table.notInFreqDb
+            for row in range(self.winInst.table.rowCount()):
+                wordText = self.winInst.table.item(row,0).text()
+                if self.winInst.table.item(row,0).checkState() == 2: # checked
+                    listOfWords.append(wordText)
+                    if notInFreqDb.has_key(wordText):
+                        notInFreqDb[wordText]["checked"] = 2
+                    else:
+                        notInFreqDb[wordText] = {"checked":2, "cbDefNum":-1}
+                    
+                elif self.winInst.table.item(row,0).checkState() == 0: # unchecked
+                    if notInFreqDb.has_key(wordText):
+                        notInFreqDb[wordText]["checked"] = 0
+                    else:
+                        notInFreqDb[wordText] = {"checked":0, "cbDefNum":-1}
+            
+            # write state of the table in file
+            self.writeNotInFreq(notInFreqDb)
+        elif self.winInst.table.lastPurpose != "notInAnki":
             self.status1L.setText("Status: please run \"Not In Anki\" first, other results detected")
             return
+        elif self.winInst.table.lastPurpose == "notInAnki":
+            for row in range(self.winInst.table.rowCount()):
+                if self.winInst.table.item(row,0).checkState() == 2:
+                    listOfWords.append(self.winInst.table.item(row,0).text())
+        else:
+            # something is fundamentally wrong
+            return
         
-        for row in range(self.winInst.table.rowCount()):
-            if self.winInst.table.item(row,0).checkState() == 2:
-                listOfWords.append(self.winInst.table.item(row,0).text())
         
         deckId = mw.col.decks.id("%s" % self.settings["dictDeckName"])
         #deck = mw.col.decks.get(deckId)
@@ -280,10 +334,10 @@ class FormWidget(QWidget):
         
         runpickle = 0
         if runpickle == 0:
-            wordsToCram, stats = self.logic.run(minRank = self.rankTV)
+            wordsToCram, stats, notInFreq = self.logic.run(minRank = self.rankTV)
             if purpose=="inAnki" or purpose=="tagList":
                 wordsToCram = self.logic.scanCards(wordsToCram, self.settings["collection"], ankiIvl=self.minIvlTV)
-            elif purpose=="notInAnki" or purpose=="setDefinitions":
+            elif purpose=="notInAnki" or purpose=="setDefinitions" or purpose=="notInFreq":
                 wordsToCram = self.logic.scanCards(wordsToCram, self.settings["collection"], ankiIvl=None)
             pik = open('/home/loj/wordsToCram.pkl', 'wb')
             pickle.dump(wordsToCram, pik, pickle.HIGHEST_PROTOCOL)
@@ -321,8 +375,14 @@ class FormWidget(QWidget):
             dArgs = {"minFreq":self.freqTV}
         elif purpose=="tagList":
             dArgs = {"minFreq":self.freqTV}
+        elif purpose=="notInFreq":
+            dArgs = {"minFreq":self.freqTV,
+                     "notInFreq":notInFreq,
+                     "wtc":wordsToCram,
+                     "notInFreqDb":self.readNotInFreq()}
         else:
             dArgs = {}
+        
         
         wordList, statLabel = self.winInst.renderTable(wordsToCram, purpose, dArgs)
         self.statusL.setText("Words shown:%i" % statLabel["wordsNum"])
@@ -355,11 +415,14 @@ class TableCalculate():
             words =  sorted([x for x in wordsToCram.items() if len(x[1][1][0]["anki"]["ids"]) >= 1 and x[1][0] >= dArgs["minFreq"]]
                                                             , key=lambda x:x[1][1][0]["rank"], reverse=False)
             labels = ['Word Name', "Rank", "Interval", "Frequency"]
-        
+        elif purpose == "notInFreq":
+            #  if dArgs["wtc"].has_key(x[0]) and len(dArgs["wtc"][x[0]][1][0]["anki"]["ids"]) == 0
+            words = sorted([x for x in dArgs["notInFreq"].items()], key=lambda x:x[1], reverse=True)
+            labels = ['Word Name', "Frequency"]
+            
         stats["wordsNum"] = len(words)
         stats["columns"] = len(labels)
         stats["labels"] = labels
-        
         
         return words, stats
     
@@ -371,6 +434,9 @@ class MyTable(QTableWidget):
     def setmydata(self, purpose, dArgs):
         self.lastPurpose = purpose
         self.setHorizontalHeaderLabels(dArgs["stats"]["labels"])
+        
+        if purpose == "notInFreq":
+            self.notInFreqDb = dArgs["notInFreqDb"]
         
         wordsI = dArgs["wordsI"]
         for wordi in range(len(wordsI)):
@@ -391,6 +457,10 @@ class MyTable(QTableWidget):
                 self.setRank(wordsI, wordi, columNum); columNum += 1
                 self.setFreq(wordsI, wordi, columNum); columNum += 1
                 
+            elif purpose == "notInFreq":
+                self.setWordName(wordsI, wordi, columNum, purpose="notInFreq"); columNum += 1
+                self.setFreq(wordsI, wordi, columNum, purpose="notInFreq"); columNum += 1
+                
         return dArgs["stats"]
             
             
@@ -400,19 +470,36 @@ class MyTable(QTableWidget):
         newitem = QTableWidgetItem(str(len(wordsI[wordi][1][1][0]["anki"]["ids"])))
         self.setItem(wordi, columNum, newitem)
     
-    def setWordName(self, wordsI, wordi, columNum):
-        newitem = QTableWidgetItem(wordsI[wordi][0])
+    def setWordName(self, wordsI, wordi, columNum, purpose=None):
+        if purpose=="notInFreq":
+            display_string = wordsI[wordi][0]
+        else:
+            display_string = wordsI[wordi][0]
+        
+        newitem = QTableWidgetItem(display_string)
         #newitem.setCheckState(Qt.Checked)
         newitem.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
-        newitem.setCheckState(Qt.Checked)  
+        if purpose=="notInFreq":
+            if self.notInFreqDb.has_key(display_string) and self.notInFreqDb[display_string]["checked"] == 2:
+                newitem.setCheckState(Qt.Checked)
+            else:
+                newitem.setCheckState(Qt.Unchecked)
+        else:
+            newitem.setCheckState(Qt.Checked)
+        
         self.setItem(wordi, columNum, newitem)
     
     def setRank(self, wordsI, wordi, columNum):
         newitem = QTableWidgetItem(str(wordsI[wordi][1][1][0]["rank"]))
         self.setItem(wordi, columNum, newitem)
     
-    def setFreq(self, wordsI, wordi, columNum):
-        newitem = QTableWidgetItem(str(wordsI[wordi][1][0]))
+    def setFreq(self, wordsI, wordi, columNum, purpose=None):
+        if purpose=="notInFreq":
+            display_string = str(wordsI[wordi][1])
+        else:
+            display_string = str(wordsI[wordi][1][0])
+        
+        newitem = QTableWidgetItem(display_string)
         self.setItem(wordi, columNum, newitem)
     
     def setIvl(self, wordsI, wordi, columNum):

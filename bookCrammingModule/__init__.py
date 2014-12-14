@@ -10,8 +10,9 @@ from aqt.qt import QMainWindow, Qt, QWidget
 from aqt.utils import showInfo
 import pickle
 
-import window
+import window, config
 reload(window)
+reload(config)
 
 class BookCrammingModule:
     def __init__(self):
@@ -19,14 +20,15 @@ class BookCrammingModule:
     
     @classmethod
     def run(cls):
-        # hardcoded settings
-        pref =  os.path.dirname(__file__)
+        # settings
         settings = {
                     "collection":mw.col,
-                    "book_text":pref+"/res/book.txt",
-                    "freqCVS":pref+"/res/freq.csv",
-                    "hashTag":"bCram",
-                    "dictDeckName":"book - bCram generated",
+                    "book_text":config.Config.book_text,
+                    "freqCVS":config.Config.freqCVS,
+                    "hashTag":config.Config.hashTag,
+                    "dictDeckName":config.Config.dictDeckName,
+                    "notInFreqDb":config.Config.notInFreqDb,
+                    #"notInFreqCambrWCFile":config.Config.notInFreqCambrWC,
                     }
         # make an instance of logic class
         logic = God()
@@ -59,8 +61,8 @@ class God:
         
         for cardId in cards:
             card = mw.col.getCard(cardId)
-            question = card.q()
-            answer = card.a()
+            #question = card.q()
+            #answer = card.a()
             nkeys = mw.col.getNote(card.nid).keys()
             sword = False
             if "Front" in nkeys: # 4k essential
@@ -69,9 +71,11 @@ class God:
                 sword = mw.col.getNote(card.nid)["Back"]
             
             if sword != None:
+                added = False
                 for wordComb in wordsToCram.items():
                     if sword == wordComb[0]:
                         juhuN += 1
+                        added = True
                         wordsToCram[wordComb[0]][1][0]["anki"]["ids"].append(cardId)
                         wordsToCram[wordComb[0]][1][0]["anki"]["nids"].append(card.nid)
                         wordsToCram[wordComb[0]][1][0]["anki"]["ivl"]=card.ivl
@@ -115,6 +119,7 @@ class God:
         self.freqList = words
         
     def run(self, minRank):
+        notInFreq = {}
         text = self.load()
         # tokenize
         tokens = nltk.word_tokenize(text)
@@ -123,13 +128,25 @@ class God:
         statistics = {}
         for token in tokens:
             ltoken = token.lower()
+            ltoken = ltoken.strip("'").strip("\"").strip()
             
             if self.freqList.has_key(ltoken):
                 if statistics.has_key(ltoken):
                     statistics[ltoken] += 1
                 else:
                     statistics[ltoken] = 1
-        
+            else:
+                if len(ltoken) > 2:
+                    if notInFreq.has_key(ltoken):
+                        notInFreq[ltoken] += 1
+                    else:
+                        notInFreq[ltoken] = 1
+                
+        #codecs.open("/tmp/notIn", "wb", encoding="utf-8").write(
+        #                    "\n".join(
+        #                              [x[0]+"\t"+unicode(x[1]) for x in sorted(notInFreq.items(),key=lambda x:x[1],reverse=True)]
+        #                              )
+        #                                      )
         # let's check the statistics
         wordsToCram = {}
         # sort words appeared in book by frequency
@@ -164,7 +181,7 @@ class God:
         #print sorted(freqLen.items(), key=lambda x:x[0], reverse=True)
         stats["freq_numToLearn"]=sorted(freqLen2.items(), key=lambda x:x[0], reverse=True)
         
-        return wordsToCram, stats
+        return wordsToCram, stats, notInFreq
 # strange documentation
 # vim /nix/store/77vvyiqsng8gnv7yxr9iw616isqkj210-anki-2.0.31/lib/python2.7/site-packages/anki/cards.py 
 #loj@think ~/Downloads $ find -L /nix/store/77vvyiqsng8gnv7yxr9iw616isqkj210-anki-2.0.31/lib/python2.7/site-packages/ -type f| xargs grep -in front | grep -v Bina | less -i

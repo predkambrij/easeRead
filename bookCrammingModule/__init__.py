@@ -25,6 +25,7 @@ class BookCrammingModule:
                     "collection":mw.col,
                     "book_text":config.Config.book_text,
                     "freqCVS":config.Config.freqCVS,
+                    "blacklisted_text":config.Config.blacklisted,
                     "hashTag":config.Config.hashTag,
                     "dictDeckName":config.Config.dictDeckName,
                     "notInFreqDb":config.Config.notInFreqDb,
@@ -118,6 +119,23 @@ class God:
             #self.words_in_freqlist[word.strip()] = 1
         self.freqList = words
         
+    def loadFreq1(self, fname):
+        freqText = codecs.open(fname, "rb", encoding="utf-8")
+        # build structure
+        words = {}
+        #self.words_in_freqlist = {}
+        rank = 0
+        for line in freqText:
+            num, word, pos, something= line.split(" ")
+            rank += 1
+            if words.has_key(word.strip()):
+                words[word.strip()].append({"rank":rank, "pos":pos.strip()})
+            else:
+                words[word.strip()] = [{"rank":rank, "pos":pos.strip()}]
+            
+        self.freqList = words
+        return
+    
     def run(self, minRank):
         notInFreq = {}
         text = self.load()
@@ -131,10 +149,11 @@ class God:
             ltoken = ltoken.strip("'").strip("\"").strip()
             
             if self.freqList.has_key(ltoken):
-                if statistics.has_key(ltoken):
-                    statistics[ltoken] += 1
-                else:
-                    statistics[ltoken] = 1
+                if len(ltoken) > 2:
+                    if statistics.has_key(ltoken):
+                        statistics[ltoken] += 1
+                    else:
+                        statistics[ltoken] = 1
             else:
                 if len(ltoken) > 2:
                     if notInFreq.has_key(ltoken):

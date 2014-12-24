@@ -148,6 +148,11 @@ class FormWidget(QWidget):
         self.notInFreqB.clicked.connect(self.notInFreqButton)
         self.layout.addWidget(self.notInFreqB,6, 1)
         
+        # blacklist
+        self.blacklistB = QPushButton("Blacklist selected")
+        self.blacklistB.clicked.connect(self.blacklistButton)
+        self.layout.addWidget(self.blacklistB,6, 2)
+        
         # another status bar
         self.status1L = QLabel(self)
         font = QFont()
@@ -167,7 +172,7 @@ class FormWidget(QWidget):
         self.rankTV = int(self.minRankT.text())
         self.freqTV = int(self.minFreqT.text())
         self.minIvlTV = int(self.minIvlT.text())
-        
+    
     def minRankButton(self):
         self.parseTextFields()
         self.calculate(purpose="minRank")
@@ -247,7 +252,7 @@ class FormWidget(QWidget):
         # read data from window (for checked items)
         listOfWords = []
         if not hasattr(self.winInst, "table"):
-            self.status1L.setText("Status: please run \"Not In Anki\" first")
+            self.status1L.setText("Status: please run \"Not In Anki\" or \"Not in Anki nor Freq list\" first")
             return
         
         if self.winInst.table.lastPurpose == "notInFreq":
@@ -270,7 +275,7 @@ class FormWidget(QWidget):
             # write state of the table in file
             self.writeNotInFreq(notInFreqDb)
         elif self.winInst.table.lastPurpose != "notInAnki":
-            self.status1L.setText("Status: please run \"Not In Anki\" first, other results detected")
+            self.status1L.setText("Status: please run \"Not In Anki\" or \"Not in Anki nor Freq list\" first, other results detected")
             return
         elif self.winInst.table.lastPurpose == "notInAnki":
             for row in range(self.winInst.table.rowCount()):
@@ -330,7 +335,7 @@ class FormWidget(QWidget):
     
     def calculate(self, purpose):
         self.logic.init(self.settings["book_text"])
-        self.logic.loadFreq(self.settings["freqCVS"])
+        self.logic.loadFreq1(self.settings["freqCVS"])
         
         runpickle = 0
         if runpickle == 0:
@@ -346,7 +351,11 @@ class FormWidget(QWidget):
             pik = open('/home/loj/wordsToCram.pkl', 'rb')
             wordsToCram = pickle.load(pik)
         
-        
+        # remove blacklisted from displaying
+        blacklisted = self.readBlacklist()
+        for word, props in blacklisted.items():
+            if wordsToCram.has_key(word):
+                del wordsToCram[word]
         
         #print self.logic.representWords(wordsToCram, purpose="minRank")
         
@@ -365,23 +374,17 @@ class FormWidget(QWidget):
                 
         self.outputValL.setText(str(reportV))
         
-        if purpose=="minRank":
-            dArgs = {"minFreq":self.freqTV}
-        elif purpose=="inAnki" or purpose=="tagList":
-            dArgs = {"minFreq":self.freqTV}
-        elif purpose=="notInAnki":
-            dArgs = {"minFreq":self.freqTV}
-        elif purpose=="setDefinitions":
-            dArgs = {"minFreq":self.freqTV}
-        elif purpose=="tagList":
-            dArgs = {"minFreq":self.freqTV}
-        elif purpose=="notInFreq":
+        if purpose=="notInFreq":
+            for word, props in blacklisted.items():
+                if notInFreq.has_key(word):
+                    del notInFreq[word]
+            
             dArgs = {"minFreq":self.freqTV,
                      "notInFreq":notInFreq,
                      "wtc":wordsToCram,
                      "notInFreqDb":self.readNotInFreq()}
         else:
-            dArgs = {}
+            dArgs = {"minFreq":self.freqTV}
         
         
         wordList, statLabel = self.winInst.renderTable(wordsToCram, purpose, dArgs)
@@ -389,15 +392,55 @@ class FormWidget(QWidget):
         
         if purpose == "tagList":
             self.tagWords(wordList)
+        
             
-            
-            pass
         # 9 2 (4)
         """
         TODO what to do with "working" "worked"
         (part of speach) and if it's verb then stem it; if it's adj then add it in anki as adj
         """
+    def readBlacklist(self):
+        """
+        set key of dict and possibility for new data
+        """
+        blacklist = {}
+        for line in codecs.open(self.settings["blacklisted_text"], "rb", encoding="utf-8"):
+                word = line.split("\t", 1)
+                blacklist[word[0]] = {}
+        return blacklist
+    
+    def writeBlacklist(self, blacklist):
+        """
+        """
+        strBuild = ""
+        for word, props in sorted([(x[0], x[1]) for x in blacklist.items()], key=lambda x:x[0]):
+            strBuild += "%s\t%s\n" % (word, "1")
+        codecs.open(self.settings["blacklisted_text"], "wb", encoding="utf-8").write(strBuild)
+        return
+    
+    def blacklistButton(self):
+        # read data from window (for checked items)
+        listOfWords = []
+        if not hasattr(self.winInst, "table"):
+            self.status1L.setText("Status: please run \"Not In Anki\" or \"Not in Anki nor Freq list\" first")
+            return
         
+        if self.winInst.table.lastPurpose == "notInFreq" or self.winInst.table.lastPurpose == "notInAnki":
+            for row in range(self.winInst.table.rowCount()):
+                if self.winInst.table.item(row,0).checkState() == 2:
+                    listOfWords.append(self.winInst.table.item(row,0).text())
+        else:
+            self.status1L.setText("Status: please run \"Not In Anki\" or \"Not in Anki nor Freq list\" first")
+            return
+        
+        blacklist = self.readBlacklist()
+        
+        for word in listOfWords:
+            blacklist[word] = {}
+        self.writeBlacklist(blacklist)
+        self.status1L.setText("Status: successfully blacklisted, remove from ...."+
+                              self.settings["blacklisted_text"][self.settings["blacklisted_text"].rfind("/"):]
+                              +" if you did the mistake")
         
         
 class TableCalculate():

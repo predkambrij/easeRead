@@ -4,6 +4,8 @@ class Config:
     pref =  os.path.dirname(__file__)
     book_text = pref+"/res/book.txt"
     freqCVS = pref+"/res/freq.csv"
+    blacklisted = pref+"/res/blacklisted.txt"
+    
     hashTag = "bCram"
     dictDeckName = "book - bCram generated"
     

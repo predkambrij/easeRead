@@ -333,13 +333,26 @@ class FormWidget(QWidget):
         self.settings["collection"].tags.bulkAdd(list(ankiNoteIds), self.settings["hashTag"])
         return
     
+    def readBlacklistMapping(self):
+        """
+        set key of dict and possibility for new data
+        """
+        mapping = {}
+        
+        for line in codecs.open(self.settings["blacklisted_man_text"], "rb", encoding="utf-8"):
+                word = line.split("|", 1)
+                if len(word) == 2:
+                    if len(word[0]) > 1:
+                        mapping[word[0].strip()] = [ x.strip() for x in word[1].split(",")]
+        return mapping
+    
     def calculate(self, purpose):
         self.logic.init(self.settings["book_text"])
         self.logic.loadFreq1(self.settings["freqCVS"])
         
         runpickle = 0
         if runpickle == 0:
-            wordsToCram, stats, notInFreq = self.logic.run(minRank = self.rankTV)
+            wordsToCram, stats, notInFreq = self.logic.run(minRank = self.rankTV, blMap=self.readBlacklistMapping())
             if purpose=="inAnki" or purpose=="tagList":
                 wordsToCram = self.logic.scanCards(wordsToCram, self.settings["collection"], ankiIvl=self.minIvlTV)
             elif purpose=="notInAnki" or purpose=="setDefinitions" or purpose=="notInFreq":
@@ -406,7 +419,11 @@ class FormWidget(QWidget):
         blacklist = {}
         for line in codecs.open(self.settings["blacklisted_text"], "rb", encoding="utf-8"):
                 word = line.split("\t", 1)
-                blacklist[word[0]] = {}
+                blacklist[word[0].strip()] = {}
+        for line in codecs.open(self.settings["blacklisted_man_text"], "rb", encoding="utf-8"):
+                word = line.split("|", 1)
+                if len(word[0]) > 1:
+                    blacklist[word[0].strip()] = {}
         return blacklist
     
     def writeBlacklist(self, blacklist):

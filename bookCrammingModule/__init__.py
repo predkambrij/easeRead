@@ -26,6 +26,7 @@ class BookCrammingModule:
                     "book_text":config.Config.book_text,
                     "freqCVS":config.Config.freqCVS,
                     "blacklisted_text":config.Config.blacklisted,
+                    "blacklisted_man_text":config.Config.blacklisted_man,
                     "hashTag":config.Config.hashTag,
                     "dictDeckName":config.Config.dictDeckName,
                     "notInFreqDb":config.Config.notInFreqDb,
@@ -136,7 +137,7 @@ class God:
         self.freqList = words
         return
     
-    def run(self, minRank):
+    def run(self, minRank, blMap):
         notInFreq = {}
         text = self.load()
         # tokenize
@@ -148,6 +149,11 @@ class God:
             ltoken = token.lower()
             ltoken = ltoken.strip("'").strip("\"").strip()
             
+            # quick 'n' dirty fix for plurals, past verb forms, ..
+            if blMap.has_key(ltoken):
+                ltoken = blMap[ltoken][0]
+            
+            # freq list
             if self.freqList.has_key(ltoken):
                 if len(ltoken) > 2:
                     if statistics.has_key(ltoken):

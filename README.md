@@ -1,6 +1,6 @@
-#Anki addon for building your vocabulary used in specific book
+# Anki addon for building your vocabulary used in specific book
 
-###How does it work?
+### How does it work?
 * This software requires list of most frequent words in language used in a book (currently hardcoded for English).
 The included list (bookCrammingModule/res/freq.csv) was copied from http://www.wordfrequency.info.
 * The software will check for book at location bookCrammingModule/res/book.txt
@@ -25,8 +25,8 @@ TODOs / known issues:
 * try to get better coverage of words in a book (they are lost during checking with most frequent words because they aren't normalized)
 * if you want to generate cards which aren't exist in Anki yet, you have to create deck "book - bCram generated" in advance
 
-#Screenshots with descriptions
-##Default screen
+# Screenshots with descriptions
+## Default screen
 ![Image](../master/docImages/default.png?raw=true)
 
 Description of the fields:
@@ -36,65 +36,65 @@ Description of the fields:
 * To learn (freq:num) - output which helps you to define proper rank and freq. Second number of each list item means how many words you need to learn if you want to understand all of the words which occurs X or more times. X is the first number of each list item.
 
 
-##Min Rank
+## Min Rank
 ![Image](../master/docImages/minRank.png?raw=true)
 
 Get list of words from book sorted by rank starting from "Set rank" and number of occurance (starting from "Set freq" - Frequency column)
 
-##In Anki
+## In Anki
 ![Image](../master/docImages/inAnki.png?raw=true)
 
 Get list of words from book sorted by rank starting from "Set rank" and number of occurance (starting from "Set freq" - Frequency column).
 That list doesn't include words which aren't in Anki.
 
-##Tag words in Anki
+## Tag words in Anki
 ![Image](../master/docImages/tagWith.png?raw=true)
 
 Will tag all cards according to the filter with (currently hardcoded) "bCram". The list is the same as provided by "In Anki".
 Note: that operaton will delete "bCram" tag from all other cards.
 
-##Untag tagged words
+## Untag tagged words
 ![Image](../master/docImages/unTag.png?raw=true)
 
 Will delete "bCram" tag from all cards.
 
-##Not in Anki
+## Not in Anki
 ![Image](../master/docImages/notInAnki.png?raw=true)
 
 Will show list of words which aren't in Anki. You can review it and add words manually.
 
-##Generate cards which aren't present in Anki yet
+## Generate cards which aren't present in Anki yet
 ![Image](../master/docImages/defini.png?raw=true)
 
 If you click "Set Definitions" after "Not in Anki", cards you selected (checkbox) will be added in (currently hardcoded) deck "book - bCram generated".
 If the template for back side of card was altered, cards will be updated with that operation (that affect just look, interval for cramming won't be changed).
 
-##Generated card example
+## Generated card example
 ![Image](../master/docImages/genCard.png?raw=true)
 
 If you click on link, it will open a new tab in your default browser with link (example for Oxford Dictionaries) http://www.oxforddictionaries.com/definition/english/wooden
 
-###Create a Filtered Deck
+### Create a Filtered Deck
 After you tagged words in "In Anki" list you can create Filtered Deck which will include cards for that list.
 
-##Step 1
+## Step 1
 ![Image](../master/docImages/filtered1.png?raw=true)
 
-##Step 2
+## Step 2
 ![Image](../master/docImages/filtered2.png?raw=true)
 
 Set Search and deselect "Reschedule cards" - that enables you to Rebuild a Filtered Deck multiple times (you can go through deck multiple times).
 
-##Step 3
+## Step 3
 ![Image](../master/docImages/filtered3.png?raw=true)
 
 After you created a Filtered Deck you can rename it to something meaningful.
 
-##Step 4
+## Step 4
 ![Image](../master/docImages/filtered4.png?raw=true)
 
 
-##Step 5
+## Step 5
 ![Image](../master/docImages/filtered5.png?raw=true)
 
 Here you are. You can study and when you completed simple click Rebuild and you can start again if you want.

@@ -1,0 +1,27 @@
+version: '2'
+services:
+  anki2:
+    image: predkambrij/anki:latest
+    hostname: "anki.localdomain"
+    build:
+      context: .
+      args:
+        ARG_UID: ${ARG_UID}
+        ARG_GID: ${ARG_GID}
+    network_mode: host
+    shm_size: 4096M
+    privileged: true
+    environment:
+      - DISPLAY
+      - XDG_RUNTIME_DIR=/run/user/1000
+      - LC_CTYPE=en_US.UTF8
+    volumes:
+      - anki_home2:/home/user
+      - ./bookCrammingModule:/home/user/.local/share/Anki2/addons21/bookCrammingModule
+      - ./res:/home/user/.local/share/Anki2/addons21/bookCrammingModule/res
+      - /run/user/1000:/run/user/1000
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /etc/localtime:/etc/localtime:ro
+
+volumes:
+  anki_home2:

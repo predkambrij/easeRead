@@ -1,0 +1,6 @@
+.env
+bookCrammingModule/__pycache__/
+res/db.notInFreq
+res/book.txt
+res/blacklisted.txt
+res/blacklisted_man.txt

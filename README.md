@@ -1,29 +1,23 @@
 # Anki addon for building your vocabulary used in specific book
 
-### How does it work?
-* This software requires list of most frequent words in language used in a book (currently hardcoded for English).
-The included list (bookCrammingModule/res/freq.csv) was copied from http://www.wordfrequency.info.
-* The software will check for book at location bookCrammingModule/res/book.txt
+### Getting started
+* run `./gen_dot_env.sh` and `./gen_res_files.sh`
+* docker-compose build anki2
+* copy text for cramming to res/book.txt
+* docker-compose up anki2
 
-Processing procedure:
-* book.txt will be tokenized and each word will be checked for frequecy of occurance and rank according of freq.csv.
-* You can set thresholds "Min Rank" (how big is your current vocabulary) and minimum number of occurance of each word. After that you can check the list of words from book starting from rank you specified.
-* You can check which words according of your filter are present in Anki (import great shared decks from https://ankiweb.net/shared/decks/) - the software searches for pattern of used in 4000 Essential English and Oxford Picture Dictionary).
-* Tag words according of your filter with (currently hardcoded) "bCram" - that enable you to make Filtered Deck.
+### Basic usage
+* You should see GUI. Choose the language.
+* To use this addon click Tools -> Cramming a Book Vocabulary menu
+* Adjust "Set rank", "Set freq" and "Min Anki ivl"
+* Click "Not in Anki"
+* Click "Set Definitions"
+* Click "Tag with #bCram"
+* Close the window, click "Decks" to refresh the list. You should see "book - bCram generated"
+* You can create filtered deck for reviewing. Click Tools -> Create Filtered Deck
+* set the filter "tag:bCram" and deselect "Reschedule cards"
+* That's the basic usage :) For more details see the following screenshots.
 
-Installation procedure:
-* required python modules: pickle, nltk, codecs
-* Download ZIP or clone git repository
-* copy bookCramming.py and bookCrammingModule to Anki/addons directory and restart Anki
-* You can access this addon by Tools -> Cramming a Book Vocabulary menu
-
-TODOs / known issues:
-* it wasn't tested on other platform than Linux Mint yet
-* some actions (In Anki, Not in Anki) may take quite a lot of time (up to half of minute if you have 30000 cards) - it should be progress bar or optimized
-* field "To learn" doesn't consider known words in Anki yet (just information showing - "Tag with #bCram" button won't tag words you know)
-* try to consider part of speach of each word or phrase (like "looking for", "is working") for normalization ("is working" -> work; don't split "looking for")
-* try to get better coverage of words in a book (they are lost during checking with most frequent words because they aren't normalized)
-* if you want to generate cards which aren't exist in Anki yet, you have to create deck "book - bCram generated" in advance
 
 # Screenshots with descriptions
 ## Default screen
@@ -100,3 +94,21 @@ After you created a Filtered Deck you can rename it to something meaningful.
 Here you are. You can study and when you completed simple click Rebuild and you can start again if you want.
 
 
+### Behind the scenes: How does it work?
+* This software requires list of most frequent words in language used in a book (currently hardcoded for English).
+The included list (res/freq.csv) was copied from http://www.wordfrequency.info.
+* The software will check for book at location res/book.txt
+
+Processing procedure:
+* book.txt will be tokenized and each word will be checked for frequecy of occurance and rank according of freq.csv.
+* You can set thresholds "Min Rank" (how big is your current vocabulary) and minimum number of occurance of each word. After that you can check the list of words from book starting from rank you specified.
+* You can check which words according of your filter are present in Anki (import great shared decks from https://ankiweb.net/shared/decks/) - the software searches for pattern of used in 4000 Essential English and Oxford Picture Dictionary).
+* Tag words according of your filter with (currently hardcoded) "bCram" - that enable you to make Filtered Deck.
+
+TODOs / known issues:
+* it wasn't tested on other platform than Linux Mint yet
+* some actions (In Anki, Not in Anki) may take quite a lot of time (up to half of minute if you have 30000 cards) - it should be progress bar or optimized
+* field "To learn" doesn't consider known words in Anki yet (just information showing - "Tag with #bCram" button won't tag words you know)
+* try to consider part of speach of each word or phrase (like "looking for", "is working") for normalization ("is working" -> work; don't split "looking for")
+* try to get better coverage of words in a book (they are lost during checking with most frequent words because they aren't normalized)
+* if you want to generate cards which aren't exist in Anki yet, you have to create deck "book - bCram generated" in advance

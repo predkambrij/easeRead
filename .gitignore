@@ -1,6 +1,8 @@
 .env
 bookCrammingModule/__pycache__/
+bookCrammingModule/res/*
 res/db.notInFreq
 res/book.txt
 res/blacklisted.txt
 res/blacklisted_man.txt
+bookCrammingModule/.idea/

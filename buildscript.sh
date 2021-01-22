@@ -25,7 +25,7 @@ function phase1() {
 function phase2() {
     runcmd apt-get install -y lsb-release apt-transport-https ca-certificates
     runcmd apt-get update
-    runcmd apt-get install -y tmux vim less curl
+    runcmd apt-get install -y firefox
     export DEBIAN_FRONTEND=noninteractive
     runcmd bash -c 'export DEBIAN_FRONTEND=noninteractive; apt-get install -y tzdata'
     runcmd apt-get install -y unzip anki
